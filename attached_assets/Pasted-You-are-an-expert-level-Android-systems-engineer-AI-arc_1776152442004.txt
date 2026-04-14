@@ -1,0 +1,131 @@
+You are an expert-level Android systems engineer, AI architect, and voice automation specialist. Design and guide the creation of a highly advanced autonomous Android AI assistant that executes real-world phone actions using natural voice commands with extreme accuracy, speed, and control.
+
+🧠 Core Objective
+
+Build a background-running, always-ready AI voice assistant app for Android that:
+
+Listens continuously in the background (low battery optimized)
+Executes commands immediately after speech ends (no lag, no waiting loops)
+Understands complex multi-step instructions in a single sentence
+Has full control over installed apps and system-level actions
+Works only on my commands and ignores all background voices
+Uses high-accuracy speech-to-text (preferably Whisper / Whisper Flow API or equivalent)
+🎯 Key Functional Requirements
+1. Always-On Background Voice System
+App must run as a foreground + background hybrid service
+Continuously listen for speech input without needing wake words
+Automatically detect end-of-speech (VAD - Voice Activity Detection) and immediately trigger execution
+Must NOT stay stuck in recording mode
+2. High-Precision Speech-to-Text (Critical)
+Use Whisper API / Whisper Flow AI / Google STT fallback
+Must provide:
+Real-time transcription
+High accuracy for Urdu/English mixed speech (if possible)
+Noise filtering to ignore background conversations
+Must instantly convert speech → structured command
+3. Intelligent Command Execution Engine
+Convert natural speech into structured action plans instantly
+
+Example:
+
+“Open YouTube, search Labon Ko, play it, set quality to 144p, and loop”
+
+Converted into:
+
+{
+  "app": "YouTube",
+  "actions": [
+    "open_app",
+    "search: labon ko",
+    "play_video",
+    "set_quality: 144p",
+    "loop_video: true"
+  ]
+}
+Must execute actions sequentially without delay
+Must auto-handle failures and retry actions
+4. Full App Control Layer (No Limits Mode)
+Use Accessibility Service + UI automation
+Must be able to:
+Open any app
+Navigate UI like a human
+Tap, swipe, scroll, type automatically
+Control YouTube (play, quality, loop, fullscreen)
+Control system features (where permissions allow)
+5. Voice Filtering & Personal Lock System
+AI must ONLY respond to:
+My primary voice (voice fingerprint authentication)
+Must ignore:
+Background conversations
+TV/audio noise
+Other people speaking nearby
+Must include speaker verification layer
+6. Instant Execution Behavior (Critical Fix Requirement)
+Problem to solve:
+Current systems keep recording and do not execute commands immediately
+Required solution:
+Implement Voice Activity Detection (VAD)
+Detect silence → auto-trigger execution instantly
+No manual stop button required
+7. Background Reliability System
+Must:
+Run even when screen is off
+Survive app switching
+Restart automatically if killed
+Use:
+Foreground service
+Boot receiver (optional auto-start)
+8. Screen On/Off Control (New Requirement)
+AI must be able to:
+Turn screen ON (wake device)
+Turn screen OFF (lock device if permission allows)
+Triggered via voice command like:
+“Turn screen on”
+“Lock phone”
+9. Advanced Voice Dictation Mode
+High-level transcription system:
+Clean punctuation
+Correct grammar automatically
+Structured output formatting
+Must support:
+Fast dictation mode
+Command mode separation
+⚙️ Recommended Tech Stack
+Android Layer
+Kotlin (preferred)
+Android Studio
+Accessibility Service (core automation engine)
+Foreground Service (background persistence)
+MediaSession API (media control)
+PowerManager API (screen control)
+AI + Voice Layer
+Whisper API / Whisper Flow AI (preferred)
+Google Speech-to-Text fallback
+LLM (OpenAI / Gemini) for command parsing
+Voice Intelligence Layer
+Voice Activity Detection (VAD)
+Speaker identification model (voice embedding comparison)
+Noise filtering (spectral subtraction / ML filter)
+🏗️ System Architecture
+🎤 Continuous Voice Listener (Background Service)
+🧠 Speech-to-Text Engine (Whisper / AI API)
+🤖 AI Command Interpreter (LLM → JSON actions)
+⚙️ Execution Engine (Accessibility Automation)
+🔐 Voice Authentication Layer
+📱 App Control Layer (YouTube, system apps, etc.)
+🔄 Background Watchdog (auto-restart system)
+⚡ Critical Performance Requirements
+No lag between speech end and execution
+Must respond within milliseconds after VAD trigger
+Must not freeze on long commands
+Must prioritize accuracy over speed only when needed
+📦 Deployment Requirement
+Build installable APK
+Must run without Play Store dependency
+Must work fully after manual installation
+Must support persistent background execution
+🎯 Final Outcome
+
+I want a system that behaves like:
+
+“A fully autonomous AI operating system inside my Android phone that listens, understands, and executes everything I say instantly and accurately — without wake words, delays, or manual control.”

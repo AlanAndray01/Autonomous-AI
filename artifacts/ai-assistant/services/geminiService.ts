@@ -9,35 +9,8 @@ export interface ParsedCommand {
   intent: string;
   actions: ParsedAction[];
   confidence: number;
+  language?: string;
 }
-
-const SYSTEM_PROMPT = `You are an advanced Android AI assistant command parser. Convert natural language voice commands into structured JSON action plans.
-
-Given a voice command, parse it and return a JSON object with this EXACT structure:
-{
-  "app": "app name (YouTube, Settings, Spotify, Chrome, WhatsApp, etc.)",
-  "intent": "brief description of overall intent",
-  "confidence": 0.0-1.0,
-  "actions": [
-    {"type": "open_app", "params": {"app": "YouTube"}},
-    {"type": "search_query", "params": {"query": "search term"}},
-    {"type": "play_video", "params": {}},
-    {"type": "set_quality", "params": {"quality": "144p"}},
-    {"type": "enable_loop", "params": {"enabled": "true"}},
-    {"type": "navigate", "params": {"destination": "Settings"}},
-    {"type": "tap_element", "params": {"element": "element name"}},
-    {"type": "set_volume", "params": {"level": "50"}},
-    {"type": "toggle_setting", "params": {"setting": "WiFi", "state": "on"}},
-    {"type": "type_text", "params": {"text": "text to type"}},
-    {"type": "scroll", "params": {"direction": "down"}},
-    {"type": "go_back", "params": {}},
-    {"type": "take_screenshot", "params": {}},
-    {"type": "set_brightness", "params": {"level": "80"}},
-    {"type": "open_url", "params": {"url": "https://..."}}
-  ]
-}
-
-Return ONLY valid JSON, no markdown, no explanation. Be precise about the action sequence.`;
 
 export async function parseCommand(rawText: string): Promise<ParsedCommand> {
   const response = await fetch(`${BASE_URL}/api/assistant/parse`, {
@@ -45,13 +18,22 @@ export async function parseCommand(rawText: string): Promise<ParsedCommand> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ command: rawText }),
   });
+  if (!response.ok) throw new Error(`Parse failed: ${response.status}`);
+  return response.json();
+}
 
-  if (!response.ok) {
-    throw new Error(`Parse failed: ${response.status}`);
-  }
-
+export async function transcribeAudio(
+  base64Audio: string,
+  mimeType = "audio/mp4"
+): Promise<string> {
+  const response = await fetch(`${BASE_URL}/api/assistant/transcribe`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ audio: base64Audio, mimeType }),
+  });
+  if (!response.ok) throw new Error(`Transcription failed: ${response.status}`);
   const data = await response.json();
-  return data as ParsedCommand;
+  return (data.transcript as string) ?? "";
 }
 
 export function getAppColor(app: string): string {
@@ -75,6 +57,9 @@ export function getAppColor(app: string): string {
     Files: "#007AFF",
     Calculator: "#FF9500",
     Notes: "#FFCC00",
+    Netflix: "#E50914",
+    TikTok: "#000000",
+    Telegram: "#2AABEE",
   };
   return map[app] ?? "#00d4ff";
 }
@@ -84,7 +69,7 @@ export function getActionIcon(type: string): string {
     open_app: "apps",
     search_query: "search",
     play_video: "play-circle",
-    set_quality: "settings",
+    set_quality: "hd",
     enable_loop: "repeat",
     navigate: "navigation",
     tap_element: "touch-app",
@@ -96,6 +81,14 @@ export function getActionIcon(type: string): string {
     take_screenshot: "screenshot",
     set_brightness: "brightness-6",
     open_url: "link",
+    make_call: "call",
+    send_whatsapp: "chat",
+    send_sms: "sms",
+    search_web: "travel-explore",
+    open_camera: "camera-alt",
+    lock_screen: "lock",
+    wake_screen: "phone-android",
+    dictate_text: "record-voice-over",
   };
   return map[type] ?? "play-arrow";
 }
@@ -110,13 +103,13 @@ export function formatActionLabel(action: ParsedAction): string {
     case "play_video":
       return "Play video";
     case "set_quality":
-      return `Set quality to ${params?.quality ?? "auto"}`;
+      return `Set quality → ${params?.quality ?? "auto"}`;
     case "enable_loop":
       return params?.enabled === "true" ? "Enable loop" : "Disable loop";
     case "navigate":
       return `Go to ${params?.destination ?? "screen"}`;
     case "tap_element":
-      return `Tap ${params?.element ?? "element"}`;
+      return `Tap "${params?.element ?? "element"}"`;
     case "set_volume":
       return `Set volume to ${params?.level ?? "50"}%`;
     case "toggle_setting":
@@ -130,9 +123,25 @@ export function formatActionLabel(action: ParsedAction): string {
     case "take_screenshot":
       return "Take screenshot";
     case "set_brightness":
-      return `Set brightness to ${params?.level ?? "50"}%`;
+      return `Set brightness → ${params?.level ?? "50"}%`;
     case "open_url":
-      return `Open URL`;
+      return `Open: ${params?.url ?? "URL"}`;
+    case "make_call":
+      return `Call ${params?.contact ?? params?.number ?? "contact"}`;
+    case "send_whatsapp":
+      return `WhatsApp ${params?.contact ?? params?.number ?? "contact"}${params?.message ? `: "${params.message}"` : ""}`;
+    case "send_sms":
+      return `SMS to ${params?.contact ?? params?.number ?? "contact"}`;
+    case "search_web":
+      return `Search web: "${params?.query ?? ""}"`;
+    case "open_camera":
+      return `Open camera (${params?.mode ?? "photo"})`;
+    case "lock_screen":
+      return "Lock screen";
+    case "wake_screen":
+      return "Wake screen";
+    case "dictate_text":
+      return `Dictate: "${params?.text ?? ""}"`;
     default:
       return type.replace(/_/g, " ");
   }
