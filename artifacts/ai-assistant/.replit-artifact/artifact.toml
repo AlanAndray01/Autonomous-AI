@@ -1,0 +1,27 @@
+kind = "mobile"
+previewPath = "/"
+title = "AI Assistant"
+version = "1.0.0"
+id = "artifacts/ai-assistant"
+router = "expo-domain"
+
+[[integratedSkills]]
+name = "expo"
+version = "1.0.0"
+
+[[services]]
+ensurePreviewReachable = "/status"
+name = "expo"
+paths = [ "/" ]
+localPort = 24354
+
+[services.development]
+run = "pnpm --filter @workspace/ai-assistant run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/ai-assistant", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/ai-assistant", "run", "serve" ]
+
+[services.env]
+PORT = "24354"
+BASE_PATH = "/"
