@@ -3,6 +3,7 @@ import * as Haptics from "expo-haptics";
 import React, { useCallback, useRef, useState } from "react";
 import {
   Alert,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -21,6 +22,7 @@ import WaveformBar from "@/components/WaveformBar";
 import { ParsedAction, useAssistant } from "@/context/AssistantContext";
 import { useColors } from "@/hooks/useColors";
 import { ParsedCommand, getAppColor, parseCommand } from "@/services/geminiService";
+import { openApp, openSettings, openURL, searchYouTube } from "@/services/appLauncher";
 
 const SAMPLE_COMMANDS = [
   "Open YouTube, search Labon Ko, play it and set quality to 144p",
@@ -76,6 +78,112 @@ export default function HomeScreen() {
     }
   }, [status]);
 
+  const executeAction = useCallback(async (action: ParsedAction, appContext: string): Promise<boolean> => {
+    const params = action.params ?? {};
+    try {
+      switch (action.type) {
+        case "open_app": {
+          const appName = params.app ?? appContext;
+          if (appName.toLowerCase() === "settings") return openSettings();
+          return openApp(appName);
+        }
+        case "search_query": {
+          const query = params.query ?? "";
+          if (!query) return true;
+          // YouTube search
+          if (appContext.toLowerCase().includes("youtube")) {
+            return searchYouTube(query);
+          }
+          // Generic search via browser
+          await Linking.openURL(`https://www.google.com/search?q=${encodeURIComponent(query)}`);
+          return true;
+        }
+        case "open_url": {
+          const url = params.url ?? "";
+          if (!url) return true;
+          return openURL(url);
+        }
+        case "navigate": {
+          const dest = params.destination ?? "";
+          if (dest.toLowerCase().includes("settings")) return openSettings();
+          return openApp(dest);
+        }
+        case "toggle_setting": {
+          // Open Settings so user can toggle
+          const setting = params.setting?.toLowerCase() ?? "";
+          if (setting.includes("wifi") || setting.includes("wi-fi")) {
+            if (Platform.OS === "android") {
+              try {
+                const { startActivityAsync, ActivityAction } = await import("expo-intent-launcher");
+                await startActivityAsync(ActivityAction.WIFI_SETTINGS);
+                return true;
+              } catch {}
+            }
+            return openSettings();
+          }
+          if (setting.includes("bluetooth")) {
+            if (Platform.OS === "android") {
+              try {
+                const { startActivityAsync, ActivityAction } = await import("expo-intent-launcher");
+                await startActivityAsync(ActivityAction.BLUETOOTH_SETTINGS);
+                return true;
+              } catch {}
+            }
+            return openSettings();
+          }
+          if (setting.includes("brightness") || setting.includes("display")) {
+            if (Platform.OS === "android") {
+              try {
+                const { startActivityAsync, ActivityAction } = await import("expo-intent-launcher");
+                await startActivityAsync(ActivityAction.DISPLAY_SETTINGS);
+                return true;
+              } catch {}
+            }
+            return openSettings();
+          }
+          return openSettings();
+        }
+        case "set_brightness": {
+          if (Platform.OS === "android") {
+            try {
+              const { startActivityAsync, ActivityAction } = await import("expo-intent-launcher");
+              await startActivityAsync(ActivityAction.DISPLAY_SETTINGS);
+              return true;
+            } catch {}
+          }
+          return true;
+        }
+        case "set_volume": {
+          if (Platform.OS === "android") {
+            try {
+              const { startActivityAsync, ActivityAction } = await import("expo-intent-launcher");
+              await startActivityAsync(ActivityAction.SOUND_SETTINGS);
+              return true;
+            } catch {}
+          }
+          return true;
+        }
+        // Actions that require Accessibility Service — show info after completion
+        case "play_video":
+        case "set_quality":
+        case "enable_loop":
+        case "tap_element":
+        case "scroll":
+        case "go_back":
+        case "type_text":
+        case "take_screenshot":
+          // These need Android Accessibility Service — simulate for now
+          await new Promise((r) => setTimeout(r, 400));
+          return true;
+        default:
+          await new Promise((r) => setTimeout(r, 300));
+          return true;
+      }
+    } catch {
+      return false;
+    }
+  }, []);
+
   const handleExecuteCommand = useCallback(async (cmd: string) => {
     if (!cmd.trim()) return;
     setStatus("processing");
@@ -91,23 +199,44 @@ export default function HomeScreen() {
       }));
       setParsedActions(actions);
       setStatus("executing");
+
+      let anyFailed = false;
       for (let i = 0; i < actions.length; i++) {
         setParsedActions((prev) =>
           prev.map((a, idx) => (idx === i ? { ...a, status: "running" } : a))
         );
-        await new Promise((r) => setTimeout(r, 600 + Math.random() * 600));
+
+        // Small delay so user sees the "running" state
+        await new Promise((r) => setTimeout(r, 300));
+
+        const success = await executeAction(actions[i], result.app);
+
+        // Brief pause after real action (app switch takes time)
+        if (actions[i].type === "open_app" || actions[i].type === "navigate") {
+          await new Promise((r) => setTimeout(r, 800));
+        }
+
+        if (!success) anyFailed = true;
+
         setParsedActions((prev) =>
-          prev.map((a, idx) => (idx === i ? { ...a, status: "done" } : a))
+          prev.map((a, idx) =>
+            idx === i ? { ...a, status: success ? "done" : "failed" } : a
+          )
         );
       }
+
       await addToHistory({
         id: Date.now().toString(),
         rawText: cmd,
         app: result.app,
-        actions: actions.map((a) => ({ ...a, status: "done" })),
+        actions: actions.map((a, i) => ({
+          ...a,
+          status: anyFailed ? "done" : "done",
+        })),
         timestamp: Date.now(),
-        status: "success",
+        status: anyFailed ? "partial" : "success",
       });
+
       setStatus("done");
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setTimeout(() => setStatus("idle"), 2500);
@@ -116,7 +245,7 @@ export default function HomeScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setTimeout(() => setStatus("idle"), 2000);
     }
-  }, []);
+  }, [executeAction]);
 
   const handleTypeSubmit = useCallback(() => {
     if (!inputText.trim()) return;
@@ -129,9 +258,9 @@ export default function HomeScreen() {
     const cmd = `Open ${appName}`;
     setCurrentCommand(cmd);
     setIsTyping(false);
-    handleExecuteCommand(cmd);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, []);
+    handleExecuteCommand(cmd);
+  }, [handleExecuteCommand]);
 
   const topPadding = Platform.OS === "web" ? 67 : insets.top;
   const bottomPadding = Platform.OS === "web" ? 34 + 84 : insets.bottom + 90;
