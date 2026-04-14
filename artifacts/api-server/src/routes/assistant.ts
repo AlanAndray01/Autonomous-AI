@@ -42,7 +42,10 @@ router.post("/assistant/parse", async (req, res) => {
   try {
     const ai = new GoogleGenAI({
       apiKey: process.env["AI_INTEGRATIONS_GEMINI_API_KEY"] ?? "",
-      baseURL: process.env["AI_INTEGRATIONS_GEMINI_BASE_URL"] ?? undefined,
+      httpOptions: {
+        apiVersion: "",
+        baseUrl: process.env["AI_INTEGRATIONS_GEMINI_BASE_URL"] ?? "",
+      },
     });
 
     const response = await ai.models.generateContent({
