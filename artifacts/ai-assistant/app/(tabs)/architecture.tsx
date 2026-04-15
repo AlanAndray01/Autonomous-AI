@@ -24,7 +24,7 @@ const ARCHITECTURE_LAYERS = [
     phase: 1,
   },
   {
-    icon: "graphic-eq",
+    icon: "equalizer",
     title: "Voice Activity Detection (VAD)",
     color: "#10d48a",
     description:
@@ -51,7 +51,7 @@ const ARCHITECTURE_LAYERS = [
     phase: 4,
   },
   {
-    icon: "psychology",
+    icon: "memory",
     title: "AI Command Interpreter",
     color: "#f59e0b",
     description:

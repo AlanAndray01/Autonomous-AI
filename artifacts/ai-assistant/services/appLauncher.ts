@@ -1,5 +1,6 @@
-import { Linking, Platform, Alert } from "react-native";
+import { Linking, Platform } from "react-native";
 import * as IntentLauncher from "expo-intent-launcher";
+import * as Contacts from "expo-contacts";
 
 /**
  * Deep link / intent map for common Android apps.
@@ -278,6 +279,79 @@ export async function sendWhatsApp(number: string, message?: string): Promise<bo
     } catch {}
   }
   return false;
+}
+
+/**
+ * Look up a contact by name and return their first phone number
+ */
+export async function lookupContactNumber(name: string): Promise<string | null> {
+  try {
+    const { status } = await Contacts.requestPermissionsAsync();
+    if (status !== "granted") return null;
+    const { data } = await Contacts.getContactsAsync({
+      fields: [Contacts.Fields.PhoneNumbers, Contacts.Fields.Name],
+    });
+    if (!data.length) return null;
+    const lower = name.toLowerCase().trim();
+    const match = data.find((c) => {
+      const full = (c.name ?? "").toLowerCase();
+      return full.includes(lower) || lower.includes(full.split(" ")[0]);
+    });
+    if (!match?.phoneNumbers?.length) return null;
+    return match.phoneNumbers[0].number?.replace(/[^0-9+]/g, "") ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Open a WhatsApp chat (or call) with a contact name or number
+ */
+export async function openWhatsAppContact(
+  contactNameOrNumber: string
+): Promise<boolean> {
+  let number = contactNameOrNumber;
+  // If it looks like a name (not digits/+), look up the contact
+  if (!/^[0-9+]/.test(contactNameOrNumber.trim())) {
+    const found = await lookupContactNumber(contactNameOrNumber);
+    if (found) number = found;
+    else {
+      // Fallback: just open WhatsApp
+      return openApp("WhatsApp");
+    }
+  }
+  const clean = number.replace(/[^0-9+]/g, "");
+  const urls = [
+    `whatsapp://send?phone=${clean}`,
+    `https://wa.me/${clean}`,
+  ];
+  for (const url of urls) {
+    try {
+      const canOpen = await Linking.canOpenURL(url);
+      if (canOpen) {
+        await Linking.openURL(url);
+        return true;
+      }
+    } catch {}
+  }
+  try {
+    await Linking.openURL(urls[1]);
+    return true;
+  } catch {}
+  return false;
+}
+
+/**
+ * Make a phone call to a contact name or number
+ */
+export async function callContact(contactNameOrNumber: string): Promise<boolean> {
+  let number = contactNameOrNumber;
+  if (!/^[0-9+]/.test(contactNameOrNumber.trim())) {
+    const found = await lookupContactNumber(contactNameOrNumber);
+    if (found) number = found;
+    else return false;
+  }
+  return makeCall(number);
 }
 
 function findAppEntry(name: string): { android: string; fallback?: string } | null {

@@ -68,34 +68,36 @@ export function getActionIcon(type: string): string {
   const map: Record<string, string> = {
     open_app: "apps",
     search_query: "search",
-    play_video: "play-circle",
-    set_quality: "hd",
+    play_video: "play-arrow",
+    set_quality: "high-quality",
     enable_loop: "repeat",
-    navigate: "navigation",
+    navigate: "arrow-forward",
     tap_element: "touch-app",
     set_volume: "volume-up",
-    toggle_setting: "toggle-on",
+    toggle_setting: "settings",
     type_text: "keyboard",
-    scroll: "swipe",
+    scroll: "swap-vert",
     go_back: "arrow-back",
-    take_screenshot: "screenshot",
-    set_brightness: "brightness-6",
-    open_url: "link",
+    take_screenshot: "crop-free",
+    set_brightness: "brightness-medium",
+    open_url: "open-in-new",
     make_call: "call",
     send_whatsapp: "chat",
-    send_sms: "sms",
-    search_web: "travel-explore",
+    send_sms: "message",
+    search_web: "public",
     open_camera: "camera-alt",
     lock_screen: "lock",
     wake_screen: "phone-android",
-    dictate_text: "record-voice-over",
+    dictate_text: "mic",
+    search_contact: "contacts",
+    call_contact: "call",
   };
   return map[type] ?? "play-arrow";
 }
 
 export function formatActionLabel(action: ParsedAction): string {
   const { type, params } = action;
-  switch (type) {
+  switch (type as string) {
     case "open_app":
       return `Open ${params?.app ?? "app"}`;
     case "search_query":
@@ -142,7 +144,11 @@ export function formatActionLabel(action: ParsedAction): string {
       return "Wake screen";
     case "dictate_text":
       return `Dictate: "${params?.text ?? ""}"`;
+    case "call_contact":
+      return `Call ${params?.contact ?? params?.name ?? "contact"} via WhatsApp`;
+    case "search_contact":
+      return `Find contact: ${params?.name ?? params?.contact ?? ""}`;
     default:
-      return type.replace(/_/g, " ");
+      return (type as string).replace(/_/g, " ");
   }
 }

@@ -1,0 +1,109 @@
+You are an expert Android developer + AI voice systems engineer + UI/UX debugger. Your task is to fix and optimize my existing Android AI assistant app so it works flawlessly in both UI and voice execution.
+
+🧠 Objective
+
+Fix my current app so that:
+
+Icons display correctly across all screens
+Voice commands execute instantly and accurately
+AI performs real app actions like calling contacts or playing YouTube videos
+System feels smooth, reliable, and fully controllable
+🛠️ Issues to Fix (Critical)
+1. UI Icons Not Showing
+Problem: Icons are missing / not rendering properly
+Fix requirements:
+Ensure all icons display correctly in all layouts
+Support:
+Vector drawables (XML)
+PNG assets (fallback)
+Fix possible causes:
+Wrong resource path (res/drawable)
+Missing app:srcCompat
+Theme compatibility issues
+Ensure compatibility across different screen sizes and Android versions
+2. Voice Command Not Executing Properly
+Problem:
+Voice records but does NOT execute command instantly
+Delay or no response after speaking
+Required Fix:
+Implement Voice Activity Detection (VAD):
+Detect when user stops speaking
+Immediately process command (no manual stop)
+Ensure flow:
+Speech detected
+Speech ends
+Instantly convert to text
+Immediately execute action
+3. Smooth & Accurate Voice Recognition
+Must:
+Work fast and reliably
+Avoid lag and buffering
+Ignore background noise
+Use:
+Whisper API (preferred) OR Google Speech-to-Text
+Improve:
+Sentence clarity
+Command recognition accuracy
+4. Real Command Execution (Core Feature)
+
+The AI must correctly execute simple natural commands like:
+
+Example Commands:
+“Open WhatsApp and call Muaz Khan”
+“Open YouTube, search Rise song, and play it”
+Required Behavior:
+Convert command → structured actions
+Execute step-by-step automatically
+Example Output:
+{
+  "app": "WhatsApp",
+  "actions": [
+    "open_app",
+    "search_contact: Muaz Khan",
+    "call_contact"
+  ]
+}
+5. App Control System (Must Work Smoothly)
+Use Accessibility Service
+Must:
+Open apps
+Navigate UI
+Click buttons
+Type text
+Must behave like a real human controlling the phone
+6. Execution Accuracy (Very Important)
+The AI must:
+Do EXACTLY what I say
+Not add extra actions
+Not skip steps
+If command is unclear:
+Ask or retry intelligently
+7. Performance Optimization
+Remove lag between command and execution
+Ensure:
+Fast response time
+No freezing
+Stable background operation
+⚙️ Technical Expectations
+Kotlin (preferred)
+Proper use of:
+Accessibility Service
+Speech-to-Text API
+Intent system (for opening apps)
+Clean architecture:
+Voice Input → Text → AI Parsing → Execution
+🎯 Final Goal
+
+The app should behave like this:
+
+I speak → AI instantly understands → action happens immediately
+
+No delay. No confusion. No errors.
+
+📦 What I Want From You
+Fix for icon issue (with code)
+Fix for voice execution issue (with proper flow)
+Working logic for:
+WhatsApp calling
+YouTube search + play
+Optimized architecture for smooth performance

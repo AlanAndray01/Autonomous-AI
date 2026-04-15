@@ -32,30 +32,32 @@ import {
   transcribeAudio,
 } from "@/services/geminiService";
 import {
+  callContact,
   makeCall,
   openApp,
   openSettings,
   openURL,
+  openWhatsAppContact,
   searchYouTube,
   sendWhatsApp,
 } from "@/services/appLauncher";
 
 const SAMPLE_COMMANDS = [
-  "Open YouTube, search Labon Ko, play it and set quality to 144p",
-  "WiFi band karo aur Settings kholo",
+  "Open WhatsApp and call Muaz Khan",
+  "Open YouTube search Rise song and play it",
+  "Open YouTube, search Labon Ko, play it",
+  "WiFi band karo",
   "Open Spotify and play lo-fi beats",
-  "Set brightness to 80%",
-  "WhatsApp kholo aur message bhejo",
-  "Open Chrome and search latest Pakistan news",
+  "Open Chrome and search latest news",
 ];
 
 const APP_SHORTCUTS = [
-  { name: "YouTube", icon: "smart-display", color: "#FF0000" },
-  { name: "Settings", icon: "settings", color: "#8E8E93" },
-  { name: "Spotify", icon: "music-note", color: "#1DB954" },
-  { name: "Chrome", icon: "language", color: "#4285F4" },
-  { name: "Maps", icon: "map", color: "#34A853" },
-  { name: "WhatsApp", icon: "chat", color: "#25D366" },
+  { name: "YouTube", icon: "logo-youtube", iconSet: "ion" as const, color: "#FF0000" },
+  { name: "Settings", icon: "settings", iconSet: "material" as const, color: "#8E8E93" },
+  { name: "Spotify", icon: "musical-notes", iconSet: "ion" as const, color: "#1DB954" },
+  { name: "Chrome", icon: "logo-chrome", iconSet: "ion" as const, color: "#4285F4" },
+  { name: "Maps", icon: "location-on", iconSet: "material" as const, color: "#34A853" },
+  { name: "WhatsApp", icon: "logo-whatsapp", iconSet: "ion" as const, color: "#25D366" },
 ];
 
 const VAD_SILENCE_THRESHOLD_DB = -42;
@@ -300,16 +302,32 @@ export default function HomeScreen() {
             if (dest.toLowerCase().includes("settings")) return openSettings();
             return openApp(dest);
           }
-          case "make_call": {
-            const number = params.number ?? "";
-            if (!number) return true;
-            return makeCall(number);
+          case "make_call":
+          case "call_contact": {
+            const target = params.contact ?? params.number ?? params.name ?? "";
+            if (!target) return true;
+            // If app context is WhatsApp, open WhatsApp with that contact
+            if (appContext.toLowerCase().includes("whatsapp")) {
+              return openWhatsAppContact(target);
+            }
+            return callContact(target);
+          }
+          case "search_contact": {
+            // Just open WhatsApp/app and let subsequent call_contact handle it
+            const contact = params.name ?? params.contact ?? "";
+            if (appContext.toLowerCase().includes("whatsapp") && contact) {
+              return openWhatsAppContact(contact);
+            }
+            return true;
           }
           case "send_whatsapp": {
-            const number = params.number ?? "";
+            const target = params.contact ?? params.number ?? "";
             const message = params.message ?? "";
-            if (!number) return true;
-            return sendWhatsApp(number, message);
+            if (!target) return true;
+            if (/^[0-9+]/.test(target.trim())) {
+              return sendWhatsApp(target, message);
+            }
+            return openWhatsAppContact(target);
           }
           case "send_sms": {
             const number = params.number ?? "";

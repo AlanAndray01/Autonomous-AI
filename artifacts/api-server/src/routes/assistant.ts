@@ -13,9 +13,9 @@ function makeAI() {
   });
 }
 
-const PARSE_SYSTEM_PROMPT = `You are an advanced Android AI assistant command parser. The user may speak in English, Urdu, or a mix of both (Hinglish/Urdu-English code-switching). Understand both languages equally well.
+const PARSE_SYSTEM_PROMPT = `You are an advanced Android AI assistant command parser. The user may speak in English, Urdu, or a mix of both (Hinglish/Urdu-English). Understand both languages equally well.
 
-Convert natural language voice commands into structured JSON action plans.
+Convert natural language voice commands into structured JSON action plans. Be PRECISE — do EXACTLY what the user says, nothing more, nothing less.
 
 Available action types:
 - open_app: {"type":"open_app","params":{"app":"YouTube"}}
@@ -33,8 +33,10 @@ Available action types:
 - take_screenshot: {"type":"take_screenshot","params":{}}
 - set_brightness: {"type":"set_brightness","params":{"level":"80"}}
 - open_url: {"type":"open_url","params":{"url":"https://..."}}
-- make_call: {"type":"make_call","params":{"number":"03001234567","contact":"name optional"}}
-- send_whatsapp: {"type":"send_whatsapp","params":{"number":"03001234567","contact":"name","message":"text"}}
+- make_call: {"type":"make_call","params":{"number":"03001234567"}}
+- call_contact: {"type":"call_contact","params":{"contact":"Muaz Khan","name":"Muaz Khan"}}
+- search_contact: {"type":"search_contact","params":{"name":"Muaz Khan"}}
+- send_whatsapp: {"type":"send_whatsapp","params":{"contact":"Muaz Khan","message":"text optional"}}
 - send_sms: {"type":"send_sms","params":{"number":"03001234567","message":"text"}}
 - search_web: {"type":"search_web","params":{"query":"search term"}}
 - open_camera: {"type":"open_camera","params":{"mode":"photo"}}
@@ -42,22 +44,38 @@ Available action types:
 - wake_screen: {"type":"wake_screen","params":{}}
 - dictate_text: {"type":"dictate_text","params":{"text":"dictated text"}}
 
-Return a JSON object with EXACTLY this structure (no markdown, no explanation):
+CRITICAL EXAMPLES — follow these exactly:
+
+"Open WhatsApp and call Muaz Khan":
+{"app":"WhatsApp","intent":"Open WhatsApp and call Muaz Khan","confidence":0.98,"language":"english","actions":[{"type":"open_app","params":{"app":"WhatsApp"}},{"type":"call_contact","params":{"contact":"Muaz Khan","name":"Muaz Khan"}}]}
+
+"Open YouTube, search Rise song, and play it":
+{"app":"YouTube","intent":"Open YouTube and play Rise song","confidence":0.98,"language":"english","actions":[{"type":"open_app","params":{"app":"YouTube"}},{"type":"search_query","params":{"query":"Rise song"}},{"type":"play_video","params":{}}]}
+
+"WhatsApp pe Muaz Khan ko call karo":
+{"app":"WhatsApp","intent":"Call Muaz Khan on WhatsApp","confidence":0.97,"language":"mixed","actions":[{"type":"open_app","params":{"app":"WhatsApp"}},{"type":"call_contact","params":{"contact":"Muaz Khan","name":"Muaz Khan"}}]}
+
+"YouTube kholo aur Labon Ko search karo":
+{"app":"YouTube","intent":"Open YouTube and search Labon Ko","confidence":0.97,"language":"mixed","actions":[{"type":"open_app","params":{"app":"YouTube"}},{"type":"search_query","params":{"query":"Labon Ko"}}]}
+
+"WiFi band karo":
+{"app":"Settings","intent":"Turn off WiFi","confidence":0.99,"language":"urdu","actions":[{"type":"toggle_setting","params":{"setting":"WiFi","state":"off"}}]}
+
+Return a JSON object with EXACTLY this structure (no markdown, no explanation, ONLY valid JSON):
 {
   "app": "primary app name",
   "intent": "brief description",
   "confidence": 0.0-1.0,
   "language": "english|urdu|mixed",
-  "actions": [/* sequential action objects */]
+  "actions": [/* sequential action objects from the list above */]
 }
 
-Examples:
-"YouTube kholo aur Labon Ko search karo" → open YouTube, search "Labon Ko"
-"WiFi band karo" → toggle WiFi off
-"Ammi ko call karo" → make_call with contact "Ammi"
-"Lock karo phone" → lock_screen
-
-Only include actions actually needed. Be precise and sequential. Return ONLY valid JSON.`;
+Rules:
+- Do EXACTLY what the user said — no extra steps, no skipped steps
+- Use call_contact (not make_call) when a contact name is mentioned
+- For WhatsApp + call → open_app(WhatsApp) then call_contact
+- For YouTube + play → open_app(YouTube) then search_query then play_video
+- Return ONLY valid JSON, no other text`;
 
 router.post("/assistant/parse", async (req, res) => {
   const { command } = req.body as { command?: string };
@@ -69,7 +87,7 @@ router.post("/assistant/parse", async (req, res) => {
   try {
     const ai = makeAI();
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-preview-04-17",
+      model: "gemini-3-flash-preview",
       contents: [
         {
           role: "user",
@@ -115,7 +133,7 @@ router.post("/assistant/transcribe", async (req, res) => {
   try {
     const ai = makeAI();
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-preview-04-17",
+      model: "gemini-3-flash-preview",
       contents: [
         {
           role: "user",
